@@ -18,6 +18,7 @@ var elementList = [];
 var docBit = BitsPerChannelType.SIXTEEN;
 // var docBit = BitsPerChannelType.THIRTYTWO;
 var settingsFile;
+var cryptoRun;
 
 var timeStart = null;
 var os = $.os.toLowerCase().indexOf('mac') >= 0 ? "MAC": "WINDOWS";
@@ -158,28 +159,8 @@ function createDialog() {
     }
 
     btn_Crypto.onClick = function() {
-        for (i_crypto = 0; i_crypto < subDirs.length; i_crypto++) {
-            if (subDirs[i_crypto].category == "PaintMain" || subDirs[i_crypto].category == "PaintSub") {
-                var tempElements = getOnlyFolders(Folder(subDirs[i_crypto].dir), false);
-                for (tempIndex = 0; tempIndex < tempElements.length; tempIndex++) {
-                    var itemName = String(tempElements[tempIndex]).substring(String(tempElements[tempIndex]).lastIndexOf("/") + 1, String(tempElements[tempIndex]).length);
-                    if (itemName.toLowerCase().indexOf("crypto") != -1) {
-                        var psbFileList = tempElements[tempIndex].getFiles("*.psb");
-                        if (psbFileList.length == 0) {
-                            var exrFileList = tempElements[tempIndex].getFiles("*.exr");
-                            for (i_exr = 0; i_exr < exrFileList.length; i_exr++) {
-                                open(exrFileList[i_exr]);
-                                $.evalFile(File(scriptFolder + "/PS_CryptoPrep.jsx"));
-                                savePSB(File(String(exrFileList[i_exr]).substring(0, String(exrFileList[i_exr].length - 4))) + ".psb");
-                                activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-                            }
-                        }
-                    }
-                    img_Warning.image = File(scriptFolder + "/icon_Blank.png");
-                    txt_Warning.text = "";
-                }
-            }
-        }
+        cryptoRun = true;
+        w.close();
     }
 
     btn_Save.onClick = function() {
@@ -306,213 +287,235 @@ function init() {
 
 function main() {
 
+    if (!cryptoRun) {
+        for (indexMain = 0; indexMain < subDirs.length; indexMain++) {
 
-    for (indexMain = 0; indexMain < subDirs.length; indexMain++) {
-
-        if (!superDoc) {
-            var firstExr = Folder(subDirs[indexMain].dir).getFiles("*.exr");
-            open(firstExr[0]);
-            var docWidth = activeDocument.width;
-            var docHeight = activeDocument.height;
-            activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-            app.documents.add(docWidth, docHeight, 72, String(mainDir).substring(String(mainDir).lastIndexOf("/") + 1, String(mainDir).length), NewDocumentMode.RGB, DocumentFill.TRANSPARENT, 1.0, docBit);
-            superDoc = activeDocument;
-            lyr_Dummy = activeDocument.activeLayer;
-        }
-
-        if (subDirs[indexMain].category == "PaintMain" || subDirs[indexMain].category == "PaintSub") {
-
-            if (subDirs[indexMain].category == "PaintMain") {
-                var carName = subDirs[indexMain].name;
-            } else {
-                var carName = subDirs[indexMain].note;
+            if (!superDoc) {
+                var firstExr = Folder(subDirs[indexMain].dir).getFiles("*.exr");
+                open(firstExr[0]);
+                var docWidth = activeDocument.width;
+                var docHeight = activeDocument.height;
+                activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+                app.documents.add(docWidth, docHeight, 72, String(mainDir).substring(String(mainDir).lastIndexOf("/") + 1, String(mainDir).length), NewDocumentMode.RGB, DocumentFill.TRANSPARENT, 1.0, docBit);
+                superDoc = activeDocument;
+                lyr_Dummy = activeDocument.activeLayer;
             }
-            
-            activeDocument.activeLayer = lyr_Dummy;
-            var firstExr = Folder(subDirs[indexMain].dir).getFiles("*.exr");
-            open(firstExr[0]);
-            var lyr_Ref = activeDocument.activeLayer;
-                lyr_Ref.visible = false;
-                lyr_Ref.name = subDirs[indexMain].name + " - Reference";
 
-            var grp_Car = activeDocument.layerSets.add();
-                grp_Car.name = subDirs[indexMain].name;
-            lyr_Ref.move(grp_Car, ElementPlacement.INSIDE);
+            if (subDirs[indexMain].category == "PaintMain" || subDirs[indexMain].category == "PaintSub") {
 
-            var elementFolders = getOnlyFolders(Folder(subDirs[indexMain].dir), false);
-            for (indexEl = 0; indexEl < elementFolders.length; indexEl++) {
-
-                var itemName = String(elementFolders[indexEl]).substring(String(elementFolders[indexEl]).lastIndexOf("/") + 1, String(elementFolders[indexEl]).length);
-                if (itemName.toLowerCase().indexOf("cryptomatte_material") != -1 || itemName.toLowerCase().indexOf("cryptomatte_object") != -1) {
-                    
-                    var cryptoPSB = elementFolders[indexEl].getFiles("*.psb");
-                    if (cryptoPSB[0] == undefined) continue;
-                    placeLinkedFile(cryptoPSB[0]);
-                    activeDocument.activeLayer.move(grp_Car, ElementPlacement.INSIDE);
-                    convertPlacedToLayers();
-                    if (itemName.toLowerCase().indexOf("cryptomatte_material") != -1) activeDocument.activeLayer.name = "Crypto Material";
-                    if (itemName.toLowerCase().indexOf("cryptomatte_object") != -1) activeDocument.activeLayer.name = "Crypto Object";
-                    activeDocument.activeLayer.blendMode = BlendMode.PASSTHROUGH;
-
+                if (subDirs[indexMain].category == "PaintMain") {
+                    var carName = subDirs[indexMain].name;
                 } else {
-
-                    var exrFileList = elementFolders[indexEl].getFiles("*.exr");
-                    for (indexExr = 0; indexExr < exrFileList.length; indexExr++) {
-                        elementList.push({
-                            "path": exrFileList[indexExr],
-                            "layer": "",
-                            "name": "",
-                            "type": ""
-                        });
-                    }
-
-                    //// ADD PASSES ////
-
-                    try {
-                        activeDocument.activeLayer = grp_Car.layerSets.getByName("Passes");
-                    } catch(e) {
-                        grp_Car.layerSets.add();
-                        activeDocument.activeLayer.name = "Passes";
-                    }
-                    
-                    for (indexExr = 0; indexExr < exrFileList.length; indexExr++) {
-
-                        open(exrFileList[indexExr]);
-                        activeDocument.selection.selectAll();
-                        activeDocument.selection.copy();
-                        activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-
-                        activeDocument.paste();
-                        var lyr = activeDocument.activeLayer;
-                        lyr.name = String(cleanFolderStr(exrFileList[indexExr])).substring(String(cleanFolderStr(exrFileList[indexExr])).lastIndexOf("\\") + 1, String(cleanFolderStr(exrFileList[indexExr])).lastIndexOf("."));
-                        // exrFileList[indexExr].layer = activeDocument.activeLayer;
-                        // exrFileList[indexExr].name = activeDocument.activeLayer.name;
-                        // exrFileList[indexExr].type = activeDocument.activeLayer.name.substring(activeDocument.activeLayer.name.lastIndexOf("_") + 1, activeDocument.activeLayer.name.length - 4);
-                        
-                        var elementType = lyr.name.substring(lyr.name.lastIndexOf("_") + 1, lyr.name.length - 4);
-                        if (elementType == "") continue;
-                        try {
-                            activeDocument.activeLayer = grp_Car.layerSets.getByName("Passes").layerSets.getByName(elementType);
-                        } catch(e) {
-                            grp_Car.layerSets.getByName("Passes").layerSets.add();
-                            activeDocument.activeLayer.name = elementType;
-                        }
-                        lyr.move(activeDocument.activeLayer, ElementPlacement.INSIDE);
-
-                        if (lyr.name.toLowerCase().indexOf("diffuse") != -1) {
-                            lyr.move(activeDocument.activeLayer.layers[activeDocument.activeLayer.layers.length - 1], ElementPlacement.PLACEBEFORE);
-                        } else if (lyr.name.toLowerCase().indexOf("reflection") != -1) {
-                            lyr.blendMode = BlendMode.LINEARDODGE;
-                        } else if (lyr.name.toLowerCase().indexOf("refraction") != -1) {
-                            lyr.blendMode = BlendMode.LINEARDODGE;
-                        } else if (lyr.name.toLowerCase().indexOf("specular") != -1) {
-                            lyr.blendMode = BlendMode.LINEARDODGE;
-                        } else {
-                            lyr.move(activeDocument.activeLayer.layers[0], ElementPlacement.PLACEBEFORE);
-                            lyr.visible = false;
-                        }
-
-                    }
-
+                    var carName = subDirs[indexMain].note;
                 }
-            }
+                
+                activeDocument.activeLayer = lyr_Dummy;
+                var firstExr = Folder(subDirs[indexMain].dir).getFiles("*.exr");
+                open(firstExr[0]);
+                var lyr_Ref = activeDocument.activeLayer;
+                    lyr_Ref.visible = false;
+                    lyr_Ref.name = subDirs[indexMain].name + " - Reference";
 
-            try {
-                grp_Car.layerSets.getByName("Crypto Object").move(grp_Car.layers[0], ElementPlacement.PLACEBEFORE);
-            } catch(e) {}
-            try {
-                grp_Car.layerSets.getByName("Crypto Material").move(grp_Car.layers[0], ElementPlacement.PLACEBEFORE);
-            } catch(e) {}
+                var grp_Car = activeDocument.layerSets.add();
+                    grp_Car.name = subDirs[indexMain].name;
+                lyr_Ref.move(grp_Car, ElementPlacement.INSIDE);
 
-            lyr_Ref.move(grp_Car, ElementPlacement.INSIDE);
+                var elementFolders = getOnlyFolders(Folder(subDirs[indexMain].dir), false);
+                for (indexEl = 0; indexEl < elementFolders.length; indexEl++) {
 
-            try {
-                activeDocument.activeLayer = grp_Car.layerSets.getByName("Crypto Material").layerSets.getByName("dome_new");
-                selectionFromMask();
-                activeDocument.selection.invert();
-                activeDocument.activeLayer = grp_Car;
-                makeLayerMask();
-            } catch(e) {
+                    var itemName = String(elementFolders[indexEl]).substring(String(elementFolders[indexEl]).lastIndexOf("/") + 1, String(elementFolders[indexEl]).length);
+                    if (itemName.toLowerCase().indexOf("cryptomatte_material") != -1 || itemName.toLowerCase().indexOf("cryptomatte_object") != -1) {
+                        
+                        var cryptoPSB = elementFolders[indexEl].getFiles("*.psb");
+                        if (cryptoPSB[0] == undefined) continue;
+                        placeLinkedFile(cryptoPSB[0]);
+                        activeDocument.activeLayer.move(grp_Car, ElementPlacement.INSIDE);
+                        convertPlacedToLayers();
+                        if (itemName.toLowerCase().indexOf("cryptomatte_material") != -1) activeDocument.activeLayer.name = "Crypto Material";
+                        if (itemName.toLowerCase().indexOf("cryptomatte_object") != -1) activeDocument.activeLayer.name = "Crypto Object";
+                        activeDocument.activeLayer.blendMode = BlendMode.PASSTHROUGH;
+
+                    } else {
+
+                        var exrFileList = elementFolders[indexEl].getFiles("*.exr");
+                        for (indexExr = 0; indexExr < exrFileList.length; indexExr++) {
+                            elementList.push({
+                                "path": exrFileList[indexExr],
+                                "layer": "",
+                                "name": "",
+                                "type": ""
+                            });
+                        }
+
+                        //// ADD PASSES ////
+
+                        try {
+                            activeDocument.activeLayer = grp_Car.layerSets.getByName("Passes");
+                        } catch(e) {
+                            grp_Car.layerSets.add();
+                            activeDocument.activeLayer.name = "Passes";
+                        }
+                        
+                        for (indexExr = 0; indexExr < exrFileList.length; indexExr++) {
+
+                            open(exrFileList[indexExr]);
+                            activeDocument.selection.selectAll();
+                            activeDocument.selection.copy();
+                            activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+
+                            activeDocument.paste();
+                            var lyr = activeDocument.activeLayer;
+                            lyr.name = String(cleanFolderStr(exrFileList[indexExr])).substring(String(cleanFolderStr(exrFileList[indexExr])).lastIndexOf("\\") + 1, String(cleanFolderStr(exrFileList[indexExr])).lastIndexOf("."));
+                            // exrFileList[indexExr].layer = activeDocument.activeLayer;
+                            // exrFileList[indexExr].name = activeDocument.activeLayer.name;
+                            // exrFileList[indexExr].type = activeDocument.activeLayer.name.substring(activeDocument.activeLayer.name.lastIndexOf("_") + 1, activeDocument.activeLayer.name.length - 4);
+                            
+                            var elementType = lyr.name.substring(lyr.name.lastIndexOf("_") + 1, lyr.name.length - 4);
+                            if (elementType == "") continue;
+                            try {
+                                activeDocument.activeLayer = grp_Car.layerSets.getByName("Passes").layerSets.getByName(elementType);
+                            } catch(e) {
+                                grp_Car.layerSets.getByName("Passes").layerSets.add();
+                                activeDocument.activeLayer.name = elementType;
+                            }
+                            lyr.move(activeDocument.activeLayer, ElementPlacement.INSIDE);
+
+                            if (lyr.name.toLowerCase().indexOf("diffuse") != -1) {
+                                lyr.move(activeDocument.activeLayer.layers[activeDocument.activeLayer.layers.length - 1], ElementPlacement.PLACEBEFORE);
+                            } else if (lyr.name.toLowerCase().indexOf("reflection") != -1) {
+                                lyr.blendMode = BlendMode.LINEARDODGE;
+                            } else if (lyr.name.toLowerCase().indexOf("refraction") != -1) {
+                                lyr.blendMode = BlendMode.LINEARDODGE;
+                            } else if (lyr.name.toLowerCase().indexOf("specular") != -1) {
+                                lyr.blendMode = BlendMode.LINEARDODGE;
+                            } else {
+                                lyr.move(activeDocument.activeLayer.layers[0], ElementPlacement.PLACEBEFORE);
+                                lyr.visible = false;
+                            }
+
+                        }
+
+                    }
+                }
+
                 try {
-                    activeDocument.activeLayer = grp_Car.layerSets.getByName("Crypto Object").layerSets.getByName("dome_new");
+                    grp_Car.layerSets.getByName("Crypto Object").move(grp_Car.layers[0], ElementPlacement.PLACEBEFORE);
+                } catch(e) {}
+                try {
+                    grp_Car.layerSets.getByName("Crypto Material").move(grp_Car.layers[0], ElementPlacement.PLACEBEFORE);
+                } catch(e) {}
+
+                lyr_Ref.move(grp_Car, ElementPlacement.INSIDE);
+
+                try {
+                    activeDocument.activeLayer = grp_Car.layerSets.getByName("Crypto Material").layerSets.getByName("dome_new");
                     selectionFromMask();
                     activeDocument.selection.invert();
                     activeDocument.activeLayer = grp_Car;
                     makeLayerMask();
+                } catch(e) {
+                    try {
+                        activeDocument.activeLayer = grp_Car.layerSets.getByName("Crypto Object").layerSets.getByName("dome_new");
+                        selectionFromMask();
+                        activeDocument.selection.invert();
+                        activeDocument.activeLayer = grp_Car;
+                        makeLayerMask();
+                    } catch(e) {}
+                    // No mask for the car
+                }
+                activeDocument.selection.deselect();
+            
+                var savePath = File(subDirs[indexMain].dir + "/" + subDirs[indexMain].name + ".psb");
+                savePSB(savePath);
+                activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+                placeLinkedFile(savePath);
+                var lyr_Car = activeDocument.activeLayer;
+
+                var lyr_Dummy = activeDocument.artLayers.add();
+                lyr_Dummy.move(activeDocument.layers[activeDocument.layers.length - 1], ElementPlacement.PLACEBEFORE);
+
+                try {
+                    activeDocument.activeLayer = activeDocument.layerSets.getByName(carName);
+                } catch(e) {
+                    activeDocument.layerSets.add();
+                    activeDocument.activeLayer.name = carName;
+                    activeDocument.activeLayer.move(activeDocument.layers[activeDocument.layers.length - 1], ElementPlacement.PLACEBEFORE);
+                }
+
+                try {
+                    lyr_Car.move(activeDocument.activeLayer, ElementPlacement.INSIDE);
                 } catch(e) {}
-                // No mask for the car
+
+                if (lyr_Car.name == carName) lyr_Car.move(activeDocument.activeLayer.layers[activeDocument.activeLayer.layers.length - 1], ElementPlacement.PLACEBEFORE);
+
+            // case "PaintSub":
+
+                // var mainName = subDirs[indexMain].name.substring(0, subDirs[indexMain].name.lastIndexOf("_"));
+                // try {
+                //     activeDocument.activeLayer = activeDocument.layerSets.getByName(mainName);
+                // } catch(e) {
+                //     activeDocument.layerSets.add();
+                //     activeDocument.activeLayer.name = mainName;
+                //     activeDocument.activeLayer.move(activeDocument.layers[activeDocument.layers.length - 1], ElementPlacement.PLACEBEFORE);
+                // }
+
+                // var grp_Main = activeDocument.activeLayer;
+                // var exrList = Folder(subDirs[indexMain].dir).getFiles("*.exr");
+                // open(exrList[0]);
+
+                // activeDocument.selection.selectAll();
+                // activeDocument.selection.copy();
+                // activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+
+                // pasteInPlace();
+                // activeDocument.activeLayer.name = subDirs[indexMain].name;
+                
+                // try {
+                //     activeDocument.activeLayer.move(grp_Main.layers[0], ElementPlacement.PLACEAFTER);
+                // } catch(e) {}
+                
+                // break;
+            } else {
+
+                try {
+                    activeDocument.activeLayer = activeDocument.layerSets.getByName(subDirs[indexMain].category);
+                } catch(e) {
+                    activeDocument.layerSets.add();
+                    activeDocument.activeLayer.name = subDirs[indexMain].category;
+                }
+
+                var exrList = Folder(subDirs[indexMain].dir).getFiles("*.exr");
+                open(exrList[0]);
+
+                activeDocument.selection.selectAll();
+                activeDocument.selection.copy();
+                activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+
+                pasteInPlace();
+                activeDocument.activeLayer.name = subDirs[indexMain].name;
+
             }
-            activeDocument.selection.deselect();
-        
-            var savePath = File(subDirs[indexMain].dir + "/" + subDirs[indexMain].name + ".psb");
-            savePSB(savePath);
-            activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-            placeLinkedFile(savePath);
-            var lyr_Car = activeDocument.activeLayer;
-
-            var lyr_Dummy = activeDocument.artLayers.add();
-            lyr_Dummy.move(activeDocument.layers[activeDocument.layers.length - 1], ElementPlacement.PLACEBEFORE);
-
-            try {
-                activeDocument.activeLayer = activeDocument.layerSets.getByName(carName);
-            } catch(e) {
-                activeDocument.layerSets.add();
-                activeDocument.activeLayer.name = carName;
-                activeDocument.activeLayer.move(activeDocument.layers[activeDocument.layers.length - 1], ElementPlacement.PLACEBEFORE);
+        }
+    } else {
+        for (i_crypto = 0; i_crypto < subDirs.length; i_crypto++) {
+            if (subDirs[i_crypto].category == "PaintMain" || subDirs[i_crypto].category == "PaintSub") {
+                var tempElements = getOnlyFolders(Folder(subDirs[i_crypto].dir), false);
+                for (tempIndex = 0; tempIndex < tempElements.length; tempIndex++) {
+                    var itemName = String(tempElements[tempIndex]).substring(String(tempElements[tempIndex]).lastIndexOf("/") + 1, String(tempElements[tempIndex]).length);
+                    if (itemName.toLowerCase().indexOf("crypto") != -1) {
+                        var psbFileList = tempElements[tempIndex].getFiles("*.psb");
+                        if (psbFileList.length == 0) {
+                            var exrFileList = tempElements[tempIndex].getFiles("*.exr");
+                            for (i_exr = 0; i_exr < exrFileList.length; i_exr++) {
+                                open(exrFileList[i_exr]);
+                                $.evalFile(File(scriptFolder + "/PS_CryptoPrep.jsx"));
+                                savePSB(File(String(exrFileList[i_exr]).substring(0, String(exrFileList[i_exr].length - 4))) + ".psb");
+                                activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+                            }
+                        }
+                    }
+                }
             }
-
-            try {
-                lyr_Car.move(activeDocument.activeLayer, ElementPlacement.INSIDE);
-            } catch(e) {}
-
-            if (lyr_Car.name == carName) lyr_Car.move(activeDocument.activeLayer.layers[activeDocument.activeLayer.layers.length - 1], ElementPlacement.PLACEBEFORE);
-
-        // case "PaintSub":
-
-            // var mainName = subDirs[indexMain].name.substring(0, subDirs[indexMain].name.lastIndexOf("_"));
-            // try {
-            //     activeDocument.activeLayer = activeDocument.layerSets.getByName(mainName);
-            // } catch(e) {
-            //     activeDocument.layerSets.add();
-            //     activeDocument.activeLayer.name = mainName;
-            //     activeDocument.activeLayer.move(activeDocument.layers[activeDocument.layers.length - 1], ElementPlacement.PLACEBEFORE);
-            // }
-
-            // var grp_Main = activeDocument.activeLayer;
-            // var exrList = Folder(subDirs[indexMain].dir).getFiles("*.exr");
-            // open(exrList[0]);
-
-            // activeDocument.selection.selectAll();
-            // activeDocument.selection.copy();
-            // activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-
-            // pasteInPlace();
-            // activeDocument.activeLayer.name = subDirs[indexMain].name;
-            
-            // try {
-            //     activeDocument.activeLayer.move(grp_Main.layers[0], ElementPlacement.PLACEAFTER);
-            // } catch(e) {}
-            
-            // break;
-        } else {
-
-            try {
-                activeDocument.activeLayer = activeDocument.layerSets.getByName(subDirs[indexMain].category);
-            } catch(e) {
-                activeDocument.layerSets.add();
-                activeDocument.activeLayer.name = subDirs[indexMain].category;
-            }
-
-            var exrList = Folder(subDirs[indexMain].dir).getFiles("*.exr");
-            open(exrList[0]);
-
-            activeDocument.selection.selectAll();
-            activeDocument.selection.copy();
-            activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-
-            pasteInPlace();
-            activeDocument.activeLayer.name = subDirs[indexMain].name;
-
         }
     }
 
