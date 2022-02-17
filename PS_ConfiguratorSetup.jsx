@@ -519,7 +519,7 @@ function main() {
                                     } else {
                                         $.evalFile(File(scriptFolder.parent + "/PS_CryptoPrep/PS_CryptoPrep.jsx"));
                                     }
-                                    savePSB(File(String(exrFileList[i_exr]).substring(0, String(exrFileList[i_exr].length - 4))) + ".psb");
+                                    savePSB(File(String(exrFileList[i_exr]).substring(0, String(exrFileList[i_exr]).lastIndexOf(".exr"))) + ".psb");
                                     activeDocument.close(SaveOptions.DONOTSAVECHANGES);
                                 }
                             }
