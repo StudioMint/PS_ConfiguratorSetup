@@ -1,8 +1,8 @@
 /*
 <javascriptresource>
-<name>$$$/JavaScripts/ScriptName/Menu=The script...</name>
-<about>$$$/JavaScripts/ScriptName/About=About text here.^r^rCopyright 2021 krypto.zoo^r^rMore script information.</about>
-<category>krypto.zoo</category>
+<name>$$$/JavaScripts/ScriptName/Menu=Polestar Configurator Setup...</name>
+<about>$$$/JavaScripts/ScriptName/About=Creates a document from configurator renders.^r^rCopyright 2022 Studio Mint</about>
+<category>Studio Mint</category>
 </javascriptresource>
 */
 
