@@ -86,11 +86,19 @@ function createDialog() {
                 list_Folders.items[subIndex].image = File (scriptFolder + "/icon_" + subDirs[subIndex].category + ".png");
             }
             list_Folders.onChange = function () {
-                btn_PaintMain.enabled = true;
-                // btn_PaintSub.enabled = true;
-                btn_Interior.enabled = true;
-                btn_Windows.enabled = true;
-                btn_Wipers.enabled = true;
+                if (list_Folders.selection == null) {
+                    btn_PaintMain.enabled = false;
+                    btn_Interior.enabled = false;
+                    btn_Windows.enabled = false;
+                    btn_Wipers.enabled = false;
+                    // btn_PaintSub.enabled = false;
+                } else {
+                    btn_PaintMain.enabled = true;
+                    btn_Interior.enabled = true;
+                    btn_Windows.enabled = true;
+                    btn_Wipers.enabled = true;
+                    // btn_PaintSub.enabled = true;
+                }
             }
 
         var grp_Warning = w.add("group");
