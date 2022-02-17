@@ -172,7 +172,7 @@ function createDialog() {
     }
    
     if (settingsFile.exists) {
-        for (i_json = 0; i_json < subDirs.length; i_json++) if (subDirs[i_json].category == "PaintMain") checkCrypto(i_json);
+        for (i_json = 0; i_json < subDirs.length; i_json++) if (subDirs[i_json].category == "PaintMain" || subDirs[i_json].category == "PaintSub") checkCrypto(i_json);
     }
     function checkCrypto(index) {
         var tempElements = getOnlyFolders(Folder(subDirs[index].dir), false);
