@@ -1,7 +1,7 @@
 /*
 <javascriptresource>
-<name>$$$/JavaScripts/PS_ConfiguratorSetup/Menu=Polestar Configurator Setup...</name>
-<about>$$$/JavaScripts/PS_ConfiguratorSetup/About=Creates a document from configurator renders.^r^rCopyright 2022 Studio Mint</about>
+<name>Polestar Configurator Setup...</name>
+<about>Copyright 2022 Studio Mint</about>
 <category>Studio Mint</category>
 </javascriptresource>
 */
