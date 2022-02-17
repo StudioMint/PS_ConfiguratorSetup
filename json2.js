@@ -1,3 +1,8 @@
+/*
+<javascriptresource>
+<menu>NONE</menu>
+</javascriptresource>
+*/
 //  json2.js
 //  2017-06-12
 //  Public Domain.
