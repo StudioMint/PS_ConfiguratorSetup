@@ -1,7 +1,7 @@
 /*
 <javascriptresource>
-<name>$$$/JavaScripts/ScriptName/Menu=Polestar Configurator Setup...</name>
-<about>$$$/JavaScripts/ScriptName/About=Creates a document from configurator renders.^r^rCopyright 2022 Studio Mint</about>
+<name>$$$/JavaScripts/PS_ConfiguratorSetup/Menu=Polestar Configurator Setup...</name>
+<about>$$$/JavaScripts/PS_ConfiguratorSetup/About=Creates a document from configurator renders.^r^rCopyright 2022 Studio Mint</about>
 <category>Studio Mint</category>
 </javascriptresource>
 */
@@ -44,13 +44,13 @@ function createDialog() {
                 grp_Btn1.orientation = "column";
                 grp_Btn1.alignment = "center";
 
-                var btn_PaintMain = grp_Btn1.add ("button",undefined,"Paint Main");
+                var btn_PaintMain = grp_Btn1.add ("button",undefined,"Paint type");
                     btn_PaintMain.enabled = false;
                 grp_Btn1.add ("image", undefined, File (scriptFolder + "/icon_PaintMain.png"));
 
-            var grp_Btn2 = grp_BtnTop.add("group");
-                grp_Btn2.orientation = "column";
-                grp_Btn2.alignment = "center";
+            // var grp_Btn2 = grp_BtnTop.add("group");
+            //     grp_Btn2.orientation = "column";
+            //     grp_Btn2.alignment = "center";
 
                 // var btn_PaintSub = grp_Btn2.add ("button",undefined,"Paint Sub");
                 //     btn_PaintSub.enabled = false;
@@ -106,7 +106,7 @@ function createDialog() {
             grp_Btn.alignment = "right";
 
             var btn_Crypto = grp_Btn.add ("button",undefined,"Create crypto masks (Exr-IO)");
-            if (!File(scriptFolder + "/PS_CryptoPrep.jsx").exists || os == "MAC") btn_Crypto.enabled = false;
+            if (!File(scriptFolder + "/PS_CryptoPrep.jsx").exists && !File(scriptFolder.parent + "/PS_CryptoPrep/PS_CryptoPrep.jsx").exists || os == "MAC") btn_Crypto.enabled = false;
             var btn_Save = grp_Btn.add ("button",undefined,"Save");
             var btn_OK = grp_Btn.add ("button",undefined,"OK");
             grp_Btn.add ("button",undefined,"Cancel");
@@ -496,33 +496,41 @@ function main() {
 
             }
         }
+
+        try {
+            lyr_Dummy.remove();
+        } catch(e) {}
+    
     } else {
-        for (i_crypto = 0; i_crypto < subDirs.length; i_crypto++) {
-            if (subDirs[i_crypto].category == "PaintMain" || subDirs[i_crypto].category == "PaintSub") {
-                var tempElements = getOnlyFolders(Folder(subDirs[i_crypto].dir), false);
-                for (tempIndex = 0; tempIndex < tempElements.length; tempIndex++) {
-                    var itemName = String(tempElements[tempIndex]).substring(String(tempElements[tempIndex]).lastIndexOf("/") + 1, String(tempElements[tempIndex]).length);
-                    if (itemName.toLowerCase().indexOf("crypto") != -1) {
-                        var psbFileList = tempElements[tempIndex].getFiles("*.psb");
-                        if (psbFileList.length == 0) {
-                            var exrFileList = tempElements[tempIndex].getFiles("*.exr");
-                            for (i_exr = 0; i_exr < exrFileList.length; i_exr++) {
-                                open(exrFileList[i_exr]);
-                                $.evalFile(File(scriptFolder + "/PS_CryptoPrep.jsx"));
-                                savePSB(File(String(exrFileList[i_exr]).substring(0, String(exrFileList[i_exr].length - 4))) + ".psb");
-                                activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+        try {
+            for (i_crypto = 0; i_crypto < subDirs.length; i_crypto++) {
+                if (subDirs[i_crypto].category == "PaintMain" || subDirs[i_crypto].category == "PaintSub") {
+                    var tempElements = getOnlyFolders(Folder(subDirs[i_crypto].dir), false);
+                    for (tempIndex = 0; tempIndex < tempElements.length; tempIndex++) {
+                        var itemName = String(tempElements[tempIndex]).substring(String(tempElements[tempIndex]).lastIndexOf("/") + 1, String(tempElements[tempIndex]).length);
+                        if (itemName.toLowerCase().indexOf("crypto") != -1) {
+                            var psbFileList = tempElements[tempIndex].getFiles("*.psb");
+                            if (psbFileList.length == 0) {
+                                var exrFileList = tempElements[tempIndex].getFiles("*.exr");
+                                for (i_exr = 0; i_exr < exrFileList.length; i_exr++) {
+                                    open(exrFileList[i_exr]);
+                                    if (File(scriptFolder + "/PS_CryptoPrep.jsx").exists) {
+                                        $.evalFile(File(scriptFolder + "/PS_CryptoPrep.jsx"));
+                                    } else {
+                                        $.evalFile(File(scriptFolder.parent + "/PS_CryptoPrep/PS_CryptoPrep.jsx"));
+                                    }
+                                    savePSB(File(String(exrFileList[i_exr]).substring(0, String(exrFileList[i_exr].length - 4))) + ".psb");
+                                    activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+                                }
                             }
                         }
                     }
                 }
             }
+        } catch(e) {
+            alert("Failed to create crypto masks" + "\n" + e)
         }
     }
-
-    try {
-        lyr_Dummy.remove();
-    } catch(e) {}
-
 }
 
 // FUNCTIONS
