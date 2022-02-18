@@ -428,7 +428,16 @@ function main() {
                         activeDocument.selection.invert();
                         activeDocument.activeLayer = grp_Car;
                         makeLayerMask();
-                    } catch(e) {}
+                    } catch(e) {
+                        try {
+                            activeDocument.activeLayer = lyr_Ref;
+                            layerSelection();
+                            if (activeDocument.selection.bounds[0].value != 0) {
+                                activeDocument.activeLayer = grp_Car;
+                                makeLayerMask();
+                            }
+                        } catch(e) {}
+                    }
                     // No mask for the car
                 }
                 activeDocument.selection.deselect();
@@ -508,6 +517,8 @@ function main() {
         try {
             lyr_Dummy.remove();
         } catch(e) {}
+
+        savePSB(File(mainDir + "/" + activeDocument.name));
     
     } else {
         try {
@@ -612,6 +623,25 @@ function selectionFromMask() {
             ref269.putEnumerated( idchannel, idchannel, idmask );
         desc307.putReference( idto, ref269 );
     executeAction( idset, desc307, DialogModes.NO );
+}
+
+function layerSelection() {
+    var idset = stringIDToTypeID( "set" );
+        var desc1345 = new ActionDescriptor();
+        var idnull = stringIDToTypeID( "null" );
+            var ref1144 = new ActionReference();
+            var idchannel = stringIDToTypeID( "channel" );
+            var idselection = stringIDToTypeID( "selection" );
+            ref1144.putProperty( idchannel, idselection );
+        desc1345.putReference( idnull, ref1144 );
+        var idto = stringIDToTypeID( "to" );
+            var ref1145 = new ActionReference();
+            var idchannel = stringIDToTypeID( "channel" );
+            var idchannel = stringIDToTypeID( "channel" );
+            var idtransparencyEnum = stringIDToTypeID( "transparencyEnum" );
+            ref1145.putEnumerated( idchannel, idchannel, idtransparencyEnum );
+        desc1345.putReference( idto, ref1145 );
+    executeAction( idset, desc1345, DialogModes.NO );
 }
 
 function maskContentCheck() {
