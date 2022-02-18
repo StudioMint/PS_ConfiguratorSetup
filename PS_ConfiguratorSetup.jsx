@@ -12,7 +12,7 @@ var scriptFolder = (new File($.fileName)).parent; // The location of this script
 
 // VARIABLES
 
-var mainDir, superDoc, lyr_Dummy, grp_Interiors, grp_Window, grp_Wipers, grp_Paints, grp_LocalAdjustments, grp_GlobalAdjustments, grp_Passes;
+var mainDir, psbDir, superDoc, angleName, lyr_Dummy, grp_Interiors, grp_Window, grp_Wipers, grp_Paints, grp_LocalAdjustments, grp_GlobalAdjustments, grp_Passes;
 var subDirs = [];
 var elementList = [];
 var docBit = BitsPerChannelType.SIXTEEN;
@@ -46,15 +46,11 @@ function createDialog() {
 
                 var btn_PaintMain = grp_Btn1.add ("button",undefined,"Paint type");
                     btn_PaintMain.enabled = false;
-                grp_Btn1.add ("image", undefined, File (scriptFolder + "/icon_PaintMain.png"));
-
-            // var grp_Btn2 = grp_BtnTop.add("group");
-            //     grp_Btn2.orientation = "column";
-            //     grp_Btn2.alignment = "center";
-
-                // var btn_PaintSub = grp_Btn2.add ("button",undefined,"Paint Sub");
-                //     btn_PaintSub.enabled = false;
-                // grp_Btn2.add ("image", undefined, File (scriptFolder + "/icon_PaintSub.png"));
+                try {
+                    grp_Btn1.add ("image", undefined, File (scriptFolder + "/icon_PaintMain.png"));
+                } catch(e) {
+                    grp_Btn1.add("statictext", undefined, "pai");
+                }
 
             var grp_Btn3 = grp_BtnTop.add("group");
                 grp_Btn3.orientation = "column";
@@ -62,7 +58,11 @@ function createDialog() {
                     
                 var btn_Interior = grp_Btn3.add ("button",undefined,"Interior");
                     btn_Interior.enabled = false;
-                grp_Btn3.add ("image", undefined, File (scriptFolder + "/icon_Interior.png"));
+                try {
+                    grp_Btn3.add ("image", undefined, File (scriptFolder + "/icon_Interior.png"));
+                } catch(e) {
+                    grp_Btn3.add("statictext", undefined, "int");
+                }
 
             var grp_Btn4 = grp_BtnTop.add("group");
                 grp_Btn4.orientation = "column";
@@ -70,7 +70,11 @@ function createDialog() {
 
                 var btn_Windows = grp_Btn4.add ("button",undefined,"Windows");
                     btn_Windows.enabled = false;
-                grp_Btn4.add ("image", undefined, File (scriptFolder + "/icon_Windows.png"));
+                try {
+                    grp_Btn4.add ("image", undefined, File (scriptFolder + "/icon_Windows.png"));
+                } catch(e) {
+                    grp_Btn4.add("statictext", undefined, "win");
+                }
 
             var grp_Btn5 = grp_BtnTop.add("group");
                 grp_Btn5.orientation = "column";
@@ -78,12 +82,32 @@ function createDialog() {
                 
                 var btn_Wipers = grp_Btn5.add ("button",undefined,"Wipers");
                     btn_Wipers.enabled = false;
-                grp_Btn5.add ("image", undefined, File (scriptFolder + "/icon_Wipers.png"));
+                try {
+                    grp_Btn5.add ("image", undefined, File (scriptFolder + "/icon_Wipers.png"));
+                } catch(e) {
+                    grp_Btn5.add("statictext", undefined, "wip");
+                }
 
-		var list_Folders = w.add ("listbox", [0, 0, 600, 600]);
+            var grp_Btn2 = grp_BtnTop.add("group");
+                grp_Btn2.orientation = "column";
+                grp_Btn2.alignment = "center";
+
+                var btn_Other = grp_Btn2.add ("button",undefined,"Other");
+                    btn_Other.enabled = false;
+                try {
+                    grp_Btn2.add ("image", undefined, File (scriptFolder + "/icon_Other.png"));
+                } catch(e) {
+                    grp_Btn2.add("statictext", undefined, "oth");
+                }
+
+		var list_Folders = w.add ("listbox", [0, 0, 600, 600], null, {multiselect: true});
             for (subIndex = 0; subIndex < subDirs.length; subIndex++) {
                 list_Folders.add ("item", subDirs[subIndex].name);
-                list_Folders.items[subIndex].image = File (scriptFolder + "/icon_" + subDirs[subIndex].category + ".png");
+                try {
+                    list_Folders.items[subIndex].image = File (scriptFolder + "/icon_" + subDirs[subIndex].category + ".png");
+                } catch(e) {
+                    list_Folders.items[subIndex].text = shortCategory(subDirs[subIndex].category) + " - " + subDirs[subIndex].name;
+                }
             }
             list_Folders.onChange = function () {
                 if (list_Folders.selection == null) {
@@ -91,13 +115,13 @@ function createDialog() {
                     btn_Interior.enabled = false;
                     btn_Windows.enabled = false;
                     btn_Wipers.enabled = false;
-                    // btn_PaintSub.enabled = false;
+                    btn_Other.enabled = false;
                 } else {
                     btn_PaintMain.enabled = true;
                     btn_Interior.enabled = true;
                     btn_Windows.enabled = true;
                     btn_Wipers.enabled = true;
-                    // btn_PaintSub.enabled = true;
+                    btn_Other.enabled = true;
                 }
             }
 
@@ -105,7 +129,11 @@ function createDialog() {
             grp_Warning.orientation = "row";
             grp_Warning.alignment = "left";
             
-            var img_Warning = grp_Warning.add ("image", undefined, File (scriptFolder + "/icon_Blank.png"));
+            try {
+                var img_Warning = grp_Warning.add ("image", undefined, File (scriptFolder + "/icon_Blank.png"));
+            } catch(e) {
+                var img_Warning = grp_Warning.add("statictext", undefined, "   ");
+            }
             var txt_Warning = grp_Warning.add("statictext",[0,0,400,15],"");
             txt_Warning.text = "";
 
@@ -120,50 +148,62 @@ function createDialog() {
             grp_Btn.add ("button",undefined,"Cancel");
     
     btn_PaintMain.onClick = function() {
-        subDirs[list_Folders.selection.index].category = "PaintMain";
-        list_Folders.items[list_Folders.selection.index].image = File(scriptFolder + "/icon_" + subDirs[list_Folders.selection.index].category + ".png");
+        for (i = 0; i < list_Folders.selection.length; i++) {
+            var index = list_Folders.selection[i].index;
+            
+            subDirs[index].category = "PaintMain";
+            try {
+                list_Folders.items[index].image = File(scriptFolder + "/icon_" + subDirs[index].category + ".png");
+            } catch(e) {
+                list_Folders.items[index].text = shortCategory(subDirs[index].category) + " - " + subDirs[index].name;
+            }
 
-        checkCrypto(list_Folders.selection.index);
+            checkCrypto(index);
 
-        for (listIndex = list_Folders.selection.index + 1; listIndex < list_Folders.items.length; listIndex++) {
-            if (subDirs[listIndex].name.indexOf(subDirs[list_Folders.selection.index].name) != -1) {
-                subDirs[listIndex].category = "PaintSub";
-                subDirs[listIndex].note = subDirs[list_Folders.selection.index].name;
-                list_Folders.items[listIndex].image = File(scriptFolder + "/icon_" + subDirs[listIndex].category + ".png");
-            } else {
-                break;
+            for (listIndex = index + 1; listIndex < list_Folders.items.length; listIndex++) {
+                if (subDirs[listIndex].name.indexOf(subDirs[index].name) != -1) {
+                    subDirs[listIndex].category = "PaintSub";
+                    subDirs[listIndex].note = subDirs[index].name;
+                    try {
+                        list_Folders.items[listIndex].image = File(scriptFolder + "/icon_" + subDirs[listIndex].category + ".png");
+                    } catch(e) {
+                        list_Folders.items[listIndex].text = shortCategory(subDirs[listIndex].category) + " - " + subDirs[listIndex].name;
+                    }
+                } else {
+                    break;
+                }
             }
         }
 
         list_Folders.active = true;
     }
-    // btn_PaintSub.onClick = function() {
-    //     subDirs[list_Folders.selection.index].category = "PaintSub";
-    //     list_Folders.items[list_Folders.selection.index].image = File(scriptFolder + "/icon_" + subDirs[list_Folders.selection.index].category + ".png");
-    //     list_Folders.active = true;
-    //     img_Warning.image = File(scriptFolder + "/icon_Blank.png");
-    //     txt_Warning.text = "";
-    // }
+    btn_Other.onClick = function() {
+        for (i = 0; i < list_Folders.selection.length; i++) {
+            var index = list_Folders.selection[i].index;
+            subDirs[index].category = "Other";
+            updateIcons(index);
+        }
+    }
     btn_Interior.onClick = function() {
-        subDirs[list_Folders.selection.index].category = "Interior";
-        list_Folders.items[list_Folders.selection.index].image = File(scriptFolder + "/icon_" + subDirs[list_Folders.selection.index].category + ".png");
-        list_Folders.active = true;
-        img_Warning.image = File(scriptFolder + "/icon_Blank.png");
-        txt_Warning.text = "";
+        for (i = 0; i < list_Folders.selection.length; i++) {
+            var index = list_Folders.selection[i].index;
+            subDirs[index].category = "Interior";
+            updateIcons(index);
+        }
     }
     btn_Windows.onClick = function() {
-        subDirs[list_Folders.selection.index].category = "Windows";
-        list_Folders.items[list_Folders.selection.index].image = File(scriptFolder + "/icon_" + subDirs[list_Folders.selection.index].category + ".png");
-        list_Folders.active = true;
-        img_Warning.image = File(scriptFolder + "/icon_Blank.png");
-        txt_Warning.text = "";
+        for (i = 0; i < list_Folders.selection.length; i++) {
+            var index = list_Folders.selection[i].index;
+            subDirs[index].category = "Windows";
+            updateIcons(index);
+        }
     }
     btn_Wipers.onClick = function() {
-        subDirs[list_Folders.selection.index].category = "Wipers";
-        list_Folders.items[list_Folders.selection.index].image = File(scriptFolder + "/icon_" + subDirs[list_Folders.selection.index].category + ".png");
-        list_Folders.active = true;
-        img_Warning.image = File(scriptFolder + "/icon_Blank.png");
-        txt_Warning.text = "";
+        for (i = 0; i < list_Folders.selection.length; i++) {
+            var index = list_Folders.selection[i].index;
+            subDirs[index].category = "Wipers";
+            updateIcons(index);
+        }
     }
 
     btn_Crypto.onClick = function() {
@@ -189,13 +229,53 @@ function createDialog() {
             if (itemName.toLowerCase().indexOf("crypto") != -1) {
                 var psbFileList = tempElements[tempIndex].getFiles("*.psb");
                 if (psbFileList.length == 0) {
-                    img_Warning.image = File(scriptFolder + "/icon_Warning.png");
+                    try {
+                        img_Warning.image = File(scriptFolder + "/icon_Warning.png");
+                    } catch(e) {
+                        img_Warning.text = "!!!";
+                    }
                     txt_Warning.text = subDirs[index].name + " is missing cryptomattes";
                     break;
                 }
             }
-            img_Warning.image = File(scriptFolder + "/icon_Blank.png");
+            try {
+                img_Warning.image = File(scriptFolder + "/icon_Blank.png");
+            } catch(e) {
+                img_Warning.text = "!!!";
+            }
             txt_Warning.text = "";
+        }
+    }
+
+    function updateIcons(index) {
+        try {
+            list_Folders.items[index].image = File(scriptFolder + "/icon_" + subDirs[index].category + ".png");
+            list_Folders.items[index].text = subDirs[index].name;
+        } catch(e) {
+            list_Folders.items[index].text = shortCategory(subDirs[index].category) + " - " + subDirs[index].name;
+            try { 
+                list_Folders.items[index].image = File(scriptFolder + "/icon_Blank.png");
+            } catch(e) {}
+        }
+        try {
+            img_Warning.image = File(scriptFolder + "/icon_Blank.png");
+        } catch(e) {
+            img_Warning.text = "   ";
+        }
+        list_Folders.active = true;
+        txt_Warning.text = "";
+    }
+
+    function shortCategory(text) {
+        switch(text) {
+            case "PaintMain": return "pai";
+            case "PaintSub": return "sub";
+            case "Interior": return "int";
+            case "Windows": return "win";
+            case "Wipers": return "wip";
+            case "Other": return "oth";
+            case "Empty": return "   ";
+            default: return "#";
         }
     }
 
@@ -231,6 +311,7 @@ function init() {
     mainDir = Folder.selectDialog("Select the main car folder (ie. \"Front34\")");
     if (mainDir == null) return;
 
+    psbDir = Folder(mainDir + "/ARBETSFILER");
     settingsFile = File(mainDir + "/settings.json");
     if (settingsFile.exists) {
         var jsonEval = $.evalFile(settingsFile);
@@ -238,30 +319,16 @@ function init() {
             subDirs = jsonEval;
         }
     }
-    if (subDirs.length == 0) {
-        var tempList = getOnlyFolders(mainDir, false).sort();
-        for (i = 0; i < tempList.length; i++) {
-            var dir = cleanFolderStr(tempList[i], true);
-            var itemName = String(tempList[i]).substring(String(tempList[i]).lastIndexOf("/") + 1, String(tempList[i]).length);
-            if (itemName.toLowerCase().indexOf("interior") != -1) {
-                var category = "Interior";
-            } else if (itemName.toLowerCase().indexOf("window") != -1) {
-                var category = "Windows";
-            } else if (itemName.toLowerCase().indexOf("wiper") != -1) {
-                var category = "Wipers";
-            } else {
-                var category = "Empty";
-            }
-            subDirs.push({
-                "dir": dir,
-                "name": itemName,
-                "category": category,
-                "note": ""
-            })
-        }
-    }
 
-    var ok = createDialog();
+    if (subDirs.length == 0) getSubDirs();
+
+    try {
+        var ok = createDialog();
+    } catch(e) {
+        subDirs = [];
+        getSubDirs();
+        var ok = createDialog();
+    }
     if (ok === 2) return false;
 
     // Keeping the ruler settings to reset in the end of the script
@@ -296,6 +363,9 @@ function init() {
 function main() {
 
     if (!cryptoRun) {
+
+        if (!psbDir.exists) psbDir.create();
+
         for (indexMain = 0; indexMain < subDirs.length; indexMain++) {
 
             if (!superDoc) {
@@ -304,7 +374,8 @@ function main() {
                 var docWidth = activeDocument.width;
                 var docHeight = activeDocument.height;
                 activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-                app.documents.add(docWidth, docHeight, 72, String(mainDir).substring(String(mainDir).lastIndexOf("/") + 1, String(mainDir).length), NewDocumentMode.RGB, DocumentFill.TRANSPARENT, 1.0, docBit);
+                angleName = String(mainDir).substring(String(mainDir).lastIndexOf("/") + 1, String(mainDir).length);
+                app.documents.add(docWidth, docHeight, 72, angleName, NewDocumentMode.RGB, DocumentFill.TRANSPARENT, 1.0, docBit);
                 superDoc = activeDocument;
                 lyr_Dummy = activeDocument.activeLayer;
             }
@@ -319,6 +390,7 @@ function main() {
                 
                 activeDocument.activeLayer = lyr_Dummy;
                 var firstExr = Folder(subDirs[indexMain].dir).getFiles("*.exr");
+                if (firstExr.length == 0) continue;
                 open(firstExr[0]);
                 var lyr_Ref = activeDocument.activeLayer;
                     lyr_Ref.visible = false;
@@ -442,10 +514,11 @@ function main() {
                 }
                 activeDocument.selection.deselect();
             
-                var savePath = File(subDirs[indexMain].dir + "/" + subDirs[indexMain].name + ".psb");
-                savePSB(savePath);
+                var savePath = Folder(psbDir + "/" + angleName + "_LinkedFiles");
+                if (!savePath.exists) savePath.create();
+                savePSB(File(savePath + "/" + subDirs[indexMain].name + ".psb"));
                 activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-                placeLinkedFile(savePath);
+                placeLinkedFile(File(savePath + "/" + subDirs[indexMain].name + ".psb"));
                 var lyr_Car = activeDocument.activeLayer;
 
                 var lyr_Dummy = activeDocument.artLayers.add();
@@ -465,33 +538,6 @@ function main() {
 
                 if (lyr_Car.name == carName) lyr_Car.move(activeDocument.activeLayer.layers[activeDocument.activeLayer.layers.length - 1], ElementPlacement.PLACEBEFORE);
 
-            // case "PaintSub":
-
-                // var mainName = subDirs[indexMain].name.substring(0, subDirs[indexMain].name.lastIndexOf("_"));
-                // try {
-                //     activeDocument.activeLayer = activeDocument.layerSets.getByName(mainName);
-                // } catch(e) {
-                //     activeDocument.layerSets.add();
-                //     activeDocument.activeLayer.name = mainName;
-                //     activeDocument.activeLayer.move(activeDocument.layers[activeDocument.layers.length - 1], ElementPlacement.PLACEBEFORE);
-                // }
-
-                // var grp_Main = activeDocument.activeLayer;
-                // var exrList = Folder(subDirs[indexMain].dir).getFiles("*.exr");
-                // open(exrList[0]);
-
-                // activeDocument.selection.selectAll();
-                // activeDocument.selection.copy();
-                // activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-
-                // pasteInPlace();
-                // activeDocument.activeLayer.name = subDirs[indexMain].name;
-                
-                // try {
-                //     activeDocument.activeLayer.move(grp_Main.layers[0], ElementPlacement.PLACEAFTER);
-                // } catch(e) {}
-                
-                // break;
             } else {
 
                 try {
@@ -502,6 +548,7 @@ function main() {
                 }
 
                 var exrList = Folder(subDirs[indexMain].dir).getFiles("*.exr");
+                if (firstExr.length == 0) continue;
                 open(exrList[0]);
 
                 activeDocument.selection.selectAll();
@@ -511,14 +558,19 @@ function main() {
                 pasteInPlace();
                 activeDocument.activeLayer.name = subDirs[indexMain].name;
 
+                switch(subDirs[indexMain].category) {
+                    case "Windows": activeDocument.activeLayer.blendMode = BlendMode.SCREEN; break;
+                    default:
+                }
+
             }
         }
 
         try {
             lyr_Dummy.remove();
         } catch(e) {}
-
-        savePSB(File(mainDir + "/" + activeDocument.name));
+        
+        savePSB(File(psbDir + "/" + activeDocument.name));
     
     } else {
         try {
@@ -553,6 +605,29 @@ function main() {
 }
 
 // FUNCTIONS
+
+function getSubDirs() {
+    var tempList = getOnlyFolders(mainDir, false).sort();
+    for (i = 0; i < tempList.length; i++) {
+        var dir = cleanFolderStr(tempList[i], true);
+        var itemName = String(tempList[i]).substring(String(tempList[i]).lastIndexOf("/") + 1, String(tempList[i]).length);
+        if (itemName.toLowerCase().indexOf("interior") != -1) {
+            var category = "Interior";
+        } else if (itemName.toLowerCase().indexOf("window") != -1) {
+            var category = "Windows";
+        } else if (itemName.toLowerCase().indexOf("wiper") != -1) {
+            var category = "Wipers";
+        } else {
+            var category = "Empty";
+        }
+        subDirs.push({
+            "dir": dir,
+            "name": itemName,
+            "category": category,
+            "note": ""
+        })
+    }
+}
 
 function createMask() {
     var idmake = stringIDToTypeID( "make" );
