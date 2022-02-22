@@ -89,6 +89,18 @@ function createDialog() {
                     grp_Btn5.add("statictext", undefined, "wip");
                 }
 
+            var grp_Btn6 = grp_BtnTop.add("group");
+                grp_Btn6.orientation = "column";
+                grp_Btn6.alignment = "center";
+                
+                var btn_Shadow = grp_Btn6.add ("button",undefined,"Shadow");
+                    btn_Shadow.enabled = false;
+                try {
+                    grp_Btn6.add ("image", undefined, File (scriptFolder + "/icon_Shadow.png"));
+                } catch(e) {
+                    grp_Btn6.add("statictext", undefined, "sha");
+                }
+
             var grp_Btn2 = grp_BtnTop.add("group");
                 grp_Btn2.orientation = "column";
                 grp_Btn2.alignment = "center";
@@ -116,12 +128,14 @@ function createDialog() {
                     btn_Interior.enabled = false;
                     btn_Windows.enabled = false;
                     btn_Wipers.enabled = false;
+                    btn_Shadow.enabled = false;
                     btn_Other.enabled = false;
                 } else {
                     btn_PaintMain.enabled = true;
                     btn_Interior.enabled = true;
                     btn_Windows.enabled = true;
                     btn_Wipers.enabled = true;
+                    btn_Shadow.enabled = true;
                     btn_Other.enabled = true;
                 }
             }
@@ -203,6 +217,13 @@ function createDialog() {
         for (i = 0; i < list_Folders.selection.length; i++) {
             var index = list_Folders.selection[i].index;
             subDirs[index].category = "Wipers";
+            updateIcons(index);
+        }
+    }
+    btn_Shadow.onClick = function() {
+        for (i = 0; i < list_Folders.selection.length; i++) {
+            var index = list_Folders.selection[i].index;
+            subDirs[index].category = "Shadow";
             updateIcons(index);
         }
     }
@@ -561,6 +582,7 @@ function main() {
                     activeDocument.layerSets.add();
                     activeDocument.activeLayer.name = subDirs[indexMain].category;
                 }
+                var lyr_Grp = activeDocument.activeLayer;
 
                 var exrList = Folder(subDirs[indexMain].dir).getFiles("*.exr");
                 if (firstExr.length == 0) continue;
@@ -575,6 +597,7 @@ function main() {
 
                 switch(subDirs[indexMain].category) {
                     case "Windows": activeDocument.activeLayer.blendMode = BlendMode.SCREEN; break;
+                    case "Shadow": lyr_Grp.move(activeDocument.layers[activeDocument.layers.length - 1], ElementPlacement.PLACEAFTER); break;
                     default:
                 }
 
@@ -584,6 +607,11 @@ function main() {
         try {
             lyr_Dummy.remove();
         } catch(e) {}
+
+        fillSolidColour(255, 255, 255);
+        activeDocument.activeLayer.move(activeDocument.layers[activeDocument.layers.length - 1], ElementPlacement.PLACEAFTER);
+        activeDocument.activeLayer.name = "Background";
+        deleteMask();
         
         savePSB(File(psbDir + "/" + activeDocument.name));
     
@@ -634,6 +662,8 @@ function getSubDirs() {
             var category = "Windows";
         } else if (itemName.toLowerCase().indexOf("wiper") != -1) {
             var category = "Wipers";
+        } else if (itemName.toLowerCase().indexOf("shadow") != -1) {
+            var category = "Shadow";
         } else {
             var category = "Empty";
         }
@@ -748,6 +778,50 @@ function maskContentCheck() {
         // Completely black mask
         return false;
     }
+}
+
+function deleteMask() {
+    var iddelete = stringIDToTypeID( "delete" );
+        var desc498 = new ActionDescriptor();
+        var idnull = stringIDToTypeID( "null" );
+            var ref432 = new ActionReference();
+            var idchannel = stringIDToTypeID( "channel" );
+            var idordinal = stringIDToTypeID( "ordinal" );
+            var idtargetEnum = stringIDToTypeID( "targetEnum" );
+            ref432.putEnumerated( idchannel, idordinal, idtargetEnum );
+        desc498.putReference( idnull, ref432 );
+    executeAction( iddelete, desc498, DialogModes.NO );
+}
+
+function fillSolidColour(R, G, B) {
+    var id117 = charIDToTypeID( "Mk  " );
+    var desc25 = new ActionDescriptor();
+    var id118 = charIDToTypeID( "null" );
+    var ref13 = new ActionReference();
+    var id119 = stringIDToTypeID( "contentLayer" );
+    ref13.putClass( id119 );
+    desc25.putReference( id118, ref13 );
+    var id120 = charIDToTypeID( "Usng" );
+    var desc26 = new ActionDescriptor();
+    var id121 = charIDToTypeID( "Type" );
+    var desc27 = new ActionDescriptor();
+    var id122 = charIDToTypeID( "Clr " );
+    var desc28 = new ActionDescriptor();
+    var id123 = charIDToTypeID( "Rd  " );
+    desc28.putDouble( id123, R ); //red
+    var id124 = charIDToTypeID( "Grn " );
+    desc28.putDouble( id124, G ); //green
+    var id125 = charIDToTypeID( "Bl  " );
+    desc28.putDouble( id125, B ); //blue
+    var id126 = charIDToTypeID( "RGBC" );
+    desc27.putObject( id122, id126, desc28 );
+    var id127 = stringIDToTypeID( "solidColorLayer" );
+    desc26.putObject( id121, id127, desc27 );
+    var id128 = stringIDToTypeID( "contentLayer" );
+    desc25.putObject( id120, id128, desc26 );
+    executeAction( id117, desc25, DialogModes.NO );
+    
+    return activeDocument.activeLayer;
 }
 
 function pasteInPlace() {
