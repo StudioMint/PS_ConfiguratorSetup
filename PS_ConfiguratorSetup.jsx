@@ -333,7 +333,8 @@ function init() {
     mainDir = Folder.selectDialog("Select the main car folder (ie. \"Front34\")");
     if (mainDir == null) return;
 
-    psbDir = Folder(mainDir + "/ARBETSFILER");
+    angleName = String(mainDir).substring(String(mainDir).lastIndexOf("/") + 1, String(mainDir).length);
+    psbDir = Folder(mainDir.parent + "/" + angleName + "_PSBs");
     settingsFile = File(mainDir + "/settings.json");
     if (settingsFile.exists) {
         var jsonEval = $.evalFile(settingsFile);
@@ -396,7 +397,6 @@ function main() {
                 var docWidth = activeDocument.width;
                 var docHeight = activeDocument.height;
                 activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-                angleName = String(mainDir).substring(String(mainDir).lastIndexOf("/") + 1, String(mainDir).length);
                 app.documents.add(docWidth, docHeight, 72, angleName, NewDocumentMode.RGB, DocumentFill.TRANSPARENT, 1.0, docBit);
                 superDoc = activeDocument;
                 lyr_Dummy = activeDocument.activeLayer;
@@ -446,7 +446,7 @@ function main() {
                             convertPlacedToLayers();
                             if (itemName.toLowerCase().indexOf("cryptomatte_material") != -1) activeDocument.activeLayer.name = "Crypto Material";
                             if (itemName.toLowerCase().indexOf("cryptomatte_object") != -1) activeDocument.activeLayer.name = "Crypto Object";
-                            activeDocument.activeLayer.blendMode = BlendMode.PASSTHROUGH;
+                            try { activeDocument.activeLayer.blendMode = BlendMode.PASSTHROUGH; } catch(e) {}
 
                         } else {
 
@@ -518,6 +518,7 @@ function main() {
                     } catch(e) {}
 
                     lyr_Ref.move(grp_Car, ElementPlacement.INSIDE);
+                    lyr_Ref.visible = false;
 
                     try {
                         activeDocument.activeLayer = grp_Car.layerSets.getByName("Crypto Material").layerSets.getByName("dome_new");
@@ -611,6 +612,7 @@ function main() {
         fillSolidColour(255, 255, 255);
         activeDocument.activeLayer.move(activeDocument.layers[activeDocument.layers.length - 1], ElementPlacement.PLACEAFTER);
         activeDocument.activeLayer.name = "Background";
+        selectMask(activeDocument.activeLayer.name);
         deleteMask();
         
         savePSB(File(psbDir + "/" + activeDocument.name));
@@ -791,6 +793,21 @@ function deleteMask() {
             ref432.putEnumerated( idchannel, idordinal, idtargetEnum );
         desc498.putReference( idnull, ref432 );
     executeAction( iddelete, desc498, DialogModes.NO );
+}
+
+function selectMask() {
+    var idselect = stringIDToTypeID( "select" );
+        var desc37 = new ActionDescriptor();
+        var idnull = stringIDToTypeID( "null" );
+            var ref16 = new ActionReference();
+            var idchannel = stringIDToTypeID( "channel" );
+            var idchannel = stringIDToTypeID( "channel" );
+            var idmask = stringIDToTypeID( "mask" );
+            ref16.putEnumerated( idchannel, idchannel, idmask );
+        desc37.putReference( idnull, ref16 );
+        var idmakeVisible = stringIDToTypeID( "makeVisible" );
+        desc37.putBoolean( idmakeVisible, false );
+    executeAction( idselect, desc37, DialogModes.NO );
 }
 
 function fillSolidColour(R, G, B) {
