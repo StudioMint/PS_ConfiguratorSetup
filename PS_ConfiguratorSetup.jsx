@@ -12,9 +12,12 @@ var scriptFolder = (new File($.fileName)).parent; // The location of this script
 
 // VARIABLES
 
-var mainDir, psbDir, superDoc, angleName, lyr_Dummy, grp_Interiors, grp_Window, grp_Wipers, grp_Paints, grp_LocalAdjustments, grp_GlobalAdjustments, grp_Passes;
+var mainDir, psbDir, superDoc, angleName, skipCrypto, lyr_Dummy, grp_Interiors, grp_Window, grp_Wipers, grp_Paints, grp_LocalAdjustments, grp_GlobalAdjustments, grp_Passes;
 var subDirs = [];
 var elementList = [];
+// var skipCrypto = false;
+var skipCryptoMat = false;
+var skipCryptoMesh = false;
 var docBit = BitsPerChannelType.SIXTEEN;
 // var docBit = BitsPerChannelType.THIRTYTWO;
 var settingsFile;
@@ -121,6 +124,7 @@ function createDialog() {
                 } catch(e) {
                     list_Folders.items[subIndex].text = shortCategory(subDirs[subIndex].category) + " - " + subDirs[subIndex].name;
                 }
+                list_Folders.items[subIndex].checked = subDirs[subIndex].use;
             }
             list_Folders.onChange = function () {
                 if (list_Folders.selection == null) {
@@ -139,6 +143,15 @@ function createDialog() {
                     btn_Other.enabled = true;
                 }
             }
+
+        // var chk_Crypto = w.add("checkbox", undefined, "Skip cryptomattes");
+
+        var grp_Use = w.add("group");
+            grp_Use.orientation = "row";
+            grp_Use.alignment = "left";
+
+            var btn_Use = grp_Use.add("button", undefined, "Use");
+            var btn_DontUse = grp_Use.add("button", undefined, "Don't use");
 
         var grp_Warning = w.add("group");
             grp_Warning.orientation = "row";
@@ -161,8 +174,16 @@ function createDialog() {
             var btn_Save = grp_Btn.add ("button",undefined,"Save settings");
             var btn_OK = grp_Btn.add ("button",undefined,"OK");
             grp_Btn.add ("button",undefined,"Cancel");
+
+    // chk_Crypto.onChange = function() {
+    //     skipCrypto = chk_Crypto;
+    //     grp_Warning.visible = chk_Crypto;
+    // }
+
+    var cryptosAvailable = false;
     
     btn_PaintMain.onClick = function() {
+        cryptosAvailable = false;
         for (i = 0; i < list_Folders.selection.length; i++) {
             var index = list_Folders.selection[i].index;
             
@@ -173,7 +194,7 @@ function createDialog() {
                 list_Folders.items[index].text = shortCategory(subDirs[index].category) + " - " + subDirs[index].name;
             }
 
-            checkCrypto(index);
+            if (!cryptosAvailable) checkCrypto(index);
 
             for (listIndex = index + 1; listIndex < list_Folders.items.length; listIndex++) {
                 if (subDirs[listIndex].name.indexOf(subDirs[index].name) != -1) {
@@ -228,6 +249,21 @@ function createDialog() {
         }
     }
 
+    btn_Use.onClick = function() {
+        for (i = 0; i < list_Folders.selection.length; i++) {
+            var index = list_Folders.selection[i].index;
+            list_Folders.items[index].checked = true;
+            subDirs[index].use = true;
+        }
+    }
+    btn_DontUse.onClick = function() {
+        for (i = 0; i < list_Folders.selection.length; i++) {
+            var index = list_Folders.selection[i].index;
+            list_Folders.items[index].checked = false;
+            subDirs[index].use = false;
+        }
+    }
+
     btn_Crypto.onClick = function() {
         cryptoRun = true;
         w.close();
@@ -238,34 +274,47 @@ function createDialog() {
     }
 
     btn_OK.onClick = function() {
-        if (checkSettings(true) === true) w.close();
+        if (checkSettings(false) === true) w.close();
     }
    
     if (settingsFile.exists) {
-        for (i_json = 0; i_json < subDirs.length; i_json++) if (subDirs[i_json].category == "PaintMain" || subDirs[i_json].category == "PaintSub") checkCrypto(i_json);
+        cryptosAvailable = false;
+        for (i_json = 0; i_json < subDirs.length; i_json++) if (subDirs[i_json].category == "PaintMain" || subDirs[i_json].category == "PaintSub" && !cryptosAvailable) checkCrypto(i_json);
     }
     function checkCrypto(index) {
+        
+        try {
+            img_Warning.image = File(scriptFolder + "/icon_Blank.png");
+        } catch(e) {
+            img_Warning.text = "!!!";
+        }
+        txt_Warning.text = "";
+        
         var tempElements = getOnlyFolders(Folder(subDirs[index].dir), false);
         for (tempIndex = 0; tempIndex < tempElements.length; tempIndex++) {
             var itemName = String(tempElements[tempIndex]).substring(String(tempElements[tempIndex]).lastIndexOf("/") + 1, String(tempElements[tempIndex]).length);
             if (itemName.toLowerCase().indexOf("crypto") != -1) {
                 var psbFileList = tempElements[tempIndex].getFiles("*.psb");
-                if (psbFileList.length == 0) {
-                    try {
-                        img_Warning.image = File(scriptFolder + "/icon_Warning.png");
-                    } catch(e) {
-                        img_Warning.text = "!!!";
-                    }
-                    txt_Warning.text = subDirs[index].name + " is missing cryptomattes";
-                    break;
+                if (psbFileList.length != 0) return cryptosAvailable = true;
+                // if (psbFileList.length == 0) {
+                //     try {
+                //         img_Warning.image = File(scriptFolder + "/icon_Warning.png");
+                //     } catch(e) {
+                //         img_Warning.text = "!!!";
+                //     }
+                //     txt_Warning.text = subDirs[index].name + " is missing cryptomattes";
+                //     break;
+                // }
+            }
+            
+            if (tempIndex == (tempElements.length - 1)) {
+                try {
+                    img_Warning.image = File(scriptFolder + "/icon_Warning.png");
+                } catch(e) {
+                    img_Warning.text = "!!!";
                 }
+                txt_Warning.text = "There are no cryptomattes for this angle";
             }
-            try {
-                img_Warning.image = File(scriptFolder + "/icon_Blank.png");
-            } catch(e) {
-                img_Warning.text = "!!!";
-            }
-            txt_Warning.text = "";
         }
     }
 
@@ -309,17 +358,16 @@ function createDialog() {
 
     return x;
 
-  function checkSettings(ignoreAlerts) {
+    function checkSettings(ignoreAlerts) {
       
-      // If something has to be checked before closing the window, do it here and return false if faulty
-      
-      if (!ignoreAlerts) {
-          alert("The check is checked!");
-      }
+        // If something has to be checked before closing the window, do it here and return false if faulty
+        if (!ignoreAlerts) {
+            if (File(psbDir + "/" + angleName + ".psb").exists) return confirm("Overwrite file?\nThere's already a main document in the save directory\n" + psbDir + "\n\nDo you want to continue and overwrite the file?");
+        }
+
+        return true;
   
-      return true;
-  
-  }
+    }
 
 }
 
@@ -391,6 +439,8 @@ function main() {
 
         for (indexMain = 0; indexMain < subDirs.length; indexMain++) {
 
+            if (!subDirs[indexMain].use) continue;
+
             if (!superDoc) {
                 var firstExr = Folder(subDirs[indexMain].dir).getFiles("*.exr");
                 open(firstExr[0]);
@@ -424,7 +474,7 @@ function main() {
                 } else {
                     var firstExr = Folder(subDirs[indexMain].dir).getFiles("*.exr");
                     if (firstExr.length == 0) continue;
-                    open(firstExr[0]);
+                    var doc_Linked = open(firstExr[0]);
                     var lyr_Ref = activeDocument.activeLayer;
                         lyr_Ref.visible = false;
                         lyr_Ref.name = subDirs[indexMain].name + " - Reference";
@@ -439,14 +489,38 @@ function main() {
                         var itemName = String(elementFolders[indexEl]).substring(String(elementFolders[indexEl]).lastIndexOf("/") + 1, String(elementFolders[indexEl]).length);
                         if (itemName.toLowerCase().indexOf("cryptomatte_material") != -1 || itemName.toLowerCase().indexOf("cryptomatte_object") != -1) {
                             
+                            // if (skipCrypto) continue;
+                            if (itemName.toLowerCase().indexOf("cryptomatte_material") != -1 && skipCryptoMat) continue;
+                            if (itemName.toLowerCase().indexOf("cryptomatte_object") != -1 && skipCryptoMesh) continue;
+
                             var cryptoPSB = elementFolders[indexEl].getFiles("*.psb");
                             if (cryptoPSB[0] == undefined) continue;
+                            activeDocument = superDoc;
                             placeLinkedFile(cryptoPSB[0]);
-                            activeDocument.activeLayer.move(grp_Car, ElementPlacement.INSIDE);
+                            var placedFile = activeDocument.activeLayer;
+                            try {
+                                activeDocument.activeLayer = activeDocument.layerSets.getByName("Crypto Mattes");
+                            } catch(e) {
+                                activeDocument.layerSets.add();
+                                activeDocument.activeLayer.name = "Crypto Mattes";
+                                activeDocument.activeLayer.move(activeDocument.layers[0], ElementPlacement.PLACEBEFORE);
+                            }
+                            placedFile.move(activeDocument.activeLayer, ElementPlacement.INSIDE);
+                            activeDocument.activeLayer = placedFile;
                             convertPlacedToLayers();
-                            if (itemName.toLowerCase().indexOf("cryptomatte_material") != -1) activeDocument.activeLayer.name = "Crypto Material";
-                            if (itemName.toLowerCase().indexOf("cryptomatte_object") != -1) activeDocument.activeLayer.name = "Crypto Object";
+                            if (itemName.toLowerCase().indexOf("cryptomatte_material") != -1) {
+                                activeDocument.activeLayer.name = "Crypto Material";
+                                skipCryptoMat = true;
+                            }
+                            if (itemName.toLowerCase().indexOf("cryptomatte_object") != -1) {
+                                activeDocument.activeLayer.name = "Crypto Object";
+                                skipCryptoMesh = true;
+                            }
                             try { activeDocument.activeLayer.blendMode = BlendMode.PASSTHROUGH; } catch(e) {}
+
+                            activeDocument = doc_Linked;
+
+                            // if (skipCryptoMat && skipCryptoMesh) skipCrypto = true;
 
                         } else {
 
@@ -471,41 +545,73 @@ function main() {
                             
                             for (indexExr = 0; indexExr < exrFileList.length; indexExr++) {
 
-                                open(exrFileList[indexExr]);
-                                activeDocument.selection.selectAll();
-                                activeDocument.selection.copy();
-                                activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-
-                                activeDocument.paste();
-                                var lyr = activeDocument.activeLayer;
-                                lyr.name = String(cleanFolderStr(exrFileList[indexExr])).substring(String(cleanFolderStr(exrFileList[indexExr])).lastIndexOf("\\") + 1, String(cleanFolderStr(exrFileList[indexExr])).lastIndexOf("."));
-                                // exrFileList[indexExr].layer = activeDocument.activeLayer;
-                                // exrFileList[indexExr].name = activeDocument.activeLayer.name;
-                                // exrFileList[indexExr].type = activeDocument.activeLayer.name.substring(activeDocument.activeLayer.name.lastIndexOf("_") + 1, activeDocument.activeLayer.name.length - 4);
-                                
-                                var elementType = lyr.name.substring(lyr.name.lastIndexOf("_") + 1, lyr.name.length - 4);
-                                if (elementType == "") continue;
                                 try {
-                                    activeDocument.activeLayer = grp_Car.layerSets.getByName("Passes").layerSets.getByName(elementType);
+                                    open(exrFileList[indexExr]);
+                                    activeDocument.selection.selectAll();
+                                    activeDocument.selection.copy();
+                                    activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+
+                                    activeDocument.paste();
+                                    var lyr = activeDocument.activeLayer;
+                                    lyr.name = String(cleanFolderStr(exrFileList[indexExr])).substring(String(cleanFolderStr(exrFileList[indexExr])).lastIndexOf("\\") + 1, String(cleanFolderStr(exrFileList[indexExr])).lastIndexOf("."));
+                                    lyr.move(activeDocument.layers[0], ElementPlacement.PLACEBEFORE);
+
+                                    selectRgbChannel();
+                                    try {
+                                        if (activeDocument.selection.bounds == undefined) throw 0;
+                                        try {
+                                            contrastSelection();
+                                            if (activeDocument.selection.bounds[0].value == 0 && activeDocument.selection.bounds[2] == activeDocument.width) activeDocument.selection.invert();
+                                            var ptLeft = activeDocument.selection.bounds[0].as('pt');
+                                            var ptTop = activeDocument.selection.bounds[1].as('pt');
+                                            var ptRight = activeDocument.selection.bounds[2].as('pt');
+                                            var ptBottom = activeDocument.selection.bounds[3].as('pt');
+                                            makePointSelection([[ptLeft, ptTop],[ptRight, ptTop],[ptRight, ptBottom], [ptLeft, ptBottom]], 0, SelectionType.REPLACE);
+                                            activeDocument.selection.invert();
+                                            try { activeDocument.selection.clear(); } catch(e) {}
+                                        } catch(e) {}
+                                        activeDocument.selection.deselect();
+                                        
+                                        var elementType = lyr.name.substring(lyr.name.lastIndexOf("_") + 1, lyr.name.length - 4);
+                                        if (elementType == "") continue;
+                                        try {
+                                            activeDocument.activeLayer = grp_Car.layerSets.getByName("Passes").layerSets.getByName(elementType);
+                                        } catch(e) {
+                                            grp_Car.layerSets.getByName("Passes").layerSets.add();
+                                            activeDocument.activeLayer.name = elementType;
+                                        }
+                                        lyr.move(activeDocument.activeLayer, ElementPlacement.INSIDE);
+
+                                        if (lyr.name.toLowerCase().indexOf("diffuse") != -1) {
+                                            lyr.move(activeDocument.activeLayer.layers[activeDocument.activeLayer.layers.length - 1], ElementPlacement.PLACEBEFORE);
+                                        } else if (lyr.name.toLowerCase().indexOf("reflection") != -1) {
+                                            lyr.blendMode = BlendMode.LINEARDODGE;
+                                        } else if (lyr.name.toLowerCase().indexOf("refraction") != -1) {
+                                            lyr.blendMode = BlendMode.LINEARDODGE;
+                                        } else if (lyr.name.toLowerCase().indexOf("specular") != -1) {
+                                            lyr.blendMode = BlendMode.LINEARDODGE;
+                                        } else if (lyr.name.toLowerCase().indexOf("puzzle") != -1) {
+                                            activeDocument.activeLayer = lyr;
+                                            fillSolidColour(0, 0, 0);
+                                            activeDocument.activeLayer.move(lyr, ElementPlacement.PLACEAFTER);
+                                            activeDocument.selection.load(activeDocument.channels.getByName("Red")); // Making a selection of the RED channel
+                                            activeDocument.activeLayer.remove();
+                                            activeDocument.activeLayer = lyr;
+                                            makeLayerMask();
+                                            selectRgb();
+                                            activeDocument.selection.selectAll();
+                                            activeDocument.selection.clear();
+                                            activeDocument.selection.deselect();
+                                        } else {
+                                            lyr.move(activeDocument.activeLayer.layers[0], ElementPlacement.PLACEBEFORE);
+                                            lyr.visible = false;
+                                        }
+                                    } catch(e) {
+                                        lyr.remove();
+                                    }
                                 } catch(e) {
-                                    grp_Car.layerSets.getByName("Passes").layerSets.add();
-                                    activeDocument.activeLayer.name = elementType;
+                                    // Fix error log
                                 }
-                                lyr.move(activeDocument.activeLayer, ElementPlacement.INSIDE);
-
-                                if (lyr.name.toLowerCase().indexOf("diffuse") != -1) {
-                                    lyr.move(activeDocument.activeLayer.layers[activeDocument.activeLayer.layers.length - 1], ElementPlacement.PLACEBEFORE);
-                                } else if (lyr.name.toLowerCase().indexOf("reflection") != -1) {
-                                    lyr.blendMode = BlendMode.LINEARDODGE;
-                                } else if (lyr.name.toLowerCase().indexOf("refraction") != -1) {
-                                    lyr.blendMode = BlendMode.LINEARDODGE;
-                                } else if (lyr.name.toLowerCase().indexOf("specular") != -1) {
-                                    lyr.blendMode = BlendMode.LINEARDODGE;
-                                } else {
-                                    lyr.move(activeDocument.activeLayer.layers[0], ElementPlacement.PLACEBEFORE);
-                                    lyr.visible = false;
-                                }
-
                             }
                         }
                     }
@@ -546,6 +652,9 @@ function main() {
                         // No mask for the car
                     }
                     activeDocument.selection.deselect();
+
+                    lyr_Ref.remove();
+                    removeEmptyChannels();
                 
                     var savePath = Folder(psbDir + "/" + angleName + "_LinkedFiles");
                     if (!savePath.exists) savePath.create();
@@ -572,6 +681,12 @@ function main() {
                 } catch(e) {}
 
                 if (lyr_Car.name == carName) lyr_Car.move(activeDocument.activeLayer.layers[activeDocument.activeLayer.layers.length - 1], ElementPlacement.PLACEBEFORE);
+                // for (i_carLyrs = 0; i_carLyrs < activeDocument.activeLayer.layers.length; i_carLyrs++) {
+                //     activeDocument.activeLayer = activeDocument.activeLayer.layers[i_carLyrs];
+                //     layerSelection();
+                //     // Find if any layer has better mask
+                //     activeDocument.activeLayer = activeDocument.activeLayer.parent;
+                // }
 
                 app.purge(PurgeTarget.ALLCACHES);
 
@@ -673,7 +788,8 @@ function getSubDirs() {
             "dir": dir,
             "name": itemName,
             "category": category,
-            "note": ""
+            "note": "",
+            "use": true
         })
     }
 }
@@ -810,6 +926,116 @@ function selectMask() {
     executeAction( idselect, desc37, DialogModes.NO );
 }
 
+function makePointSelection(pointArray, feather, selectionType) {
+    var currentRulerUnits = app.preferences.rulerUnits;
+    var currentTypeUnits = app.preferences.typeUnits;
+    var currentDisplayDialogs = app.displayDialogs;
+
+    app.preferences.rulerUnits = Units.POINTS;
+    app.preferences.typeUnits = TypeUnits.POINTS;
+    app.displayDialogs = DialogModes.NO;
+
+    var lineArray = [];
+    for (pointIndex = 0; pointIndex < pointArray.length; pointIndex++) {
+        lineArray[pointIndex] = new PathPointInfo;
+        lineArray[pointIndex].kind = PointKind.CORNERPOINT;
+        lineArray[pointIndex].anchor = pointArray[pointIndex];
+        lineArray[pointIndex].leftDirection = lineArray[pointIndex].anchor;
+        lineArray[pointIndex].rightDirection = lineArray[pointIndex].anchor;
+    }
+    var lineSubPathArray = new Array();
+        lineSubPathArray[0] = new SubPathInfo();
+        lineSubPathArray[0].operation = ShapeOperation.SHAPEXOR;
+        lineSubPathArray[0].closed = false;
+        lineSubPathArray[0].entireSubPath = lineArray;
+
+    var tempPathItem = activeDocument.pathItems.add("Temp path", lineSubPathArray);
+    tempPathItem.makeSelection(feather, true, selectionType);
+    tempPathItem.remove();
+
+    app.preferences.rulerUnits = currentRulerUnits;
+    app.preferences.typeUnits = currentTypeUnits;
+    app.displayDialogs = currentDisplayDialogs;
+}
+
+function selectRgbChannel() {
+    try {
+        // make temp black alpha channel
+        var d = new ActionDescriptor();
+        var d1 = new ActionDescriptor();
+            d1.putEnumerated(stringIDToTypeID("colorIndicates"), stringIDToTypeID("maskIndicator"), stringIDToTypeID("maskedAreas"));
+        var d2 = new ActionDescriptor();
+            d2.putDouble(stringIDToTypeID("red"), 255);
+            d2.putDouble(stringIDToTypeID("green"), 0);
+            d2.putDouble(stringIDToTypeID("blue"), 0);
+            d1.putObject(stringIDToTypeID("color"), stringIDToTypeID("RGBColor"), d2);
+            d1.putInteger(stringIDToTypeID("opacity"), 50);
+            d.putObject(stringIDToTypeID("new"), stringIDToTypeID("channel"), d1);
+        executeAction(stringIDToTypeID("make"), d, DialogModes.NO);
+    
+        // apply RGB to alpha channel
+        var d = new ActionDescriptor();
+        var d1 = new ActionDescriptor();
+        var r = new ActionReference();
+            r.putEnumerated(stringIDToTypeID("channel"), stringIDToTypeID("channel"), stringIDToTypeID("RGB"));
+            r.putEnumerated(stringIDToTypeID("layer"), stringIDToTypeID("ordinal"), stringIDToTypeID("merged"));
+            d1.putReference(stringIDToTypeID("to"), r);
+            d1.putBoolean(stringIDToTypeID("preserveTransparency"), true);
+            d.putObject(stringIDToTypeID("with"), stringIDToTypeID("calculation"), d1);
+        executeAction(stringIDToTypeID("applyImageEvent"), d, DialogModes.NO);
+    
+        // make selection from alpha channel
+        var d = new ActionDescriptor();
+        var r = new ActionReference();
+            r.putProperty(stringIDToTypeID("channel"), stringIDToTypeID("selection"));
+            d.putReference(stringIDToTypeID("null"), r);
+        var r1 = new ActionReference();
+            r1.putEnumerated(stringIDToTypeID("channel"), stringIDToTypeID("ordinal"), stringIDToTypeID("targetEnum"));
+            d.putReference(stringIDToTypeID("to"), r1);
+            executeAction(stringIDToTypeID("set"), d, DialogModes.NO);
+        var d = new ActionDescriptor();
+    
+        // delete temp alpha channel
+        var r = new ActionReference();
+            r.putEnumerated(stringIDToTypeID("channel"), stringIDToTypeID("ordinal"), stringIDToTypeID("targetEnum"));
+            d.putReference(stringIDToTypeID("null"), r);
+            executeAction(stringIDToTypeID("delete"), d, DialogModes.NO);
+        }
+    catch (e) {}
+}
+
+function contrastSelection() {
+    var idsmartBrushWorkspace = stringIDToTypeID( "smartBrushWorkspace" );
+        var desc121 = new ActionDescriptor();
+        var idsmartBrushRadius = stringIDToTypeID( "smartBrushRadius" );
+        desc121.putInteger( idsmartBrushRadius, 0 );
+        var idsmartBrushSmooth = stringIDToTypeID( "smartBrushSmooth" );
+        desc121.putInteger( idsmartBrushSmooth, 0 );
+        var idsmartBrushFeather = stringIDToTypeID( "smartBrushFeather" );
+        var idpixelsUnit = stringIDToTypeID( "pixelsUnit" );
+        desc121.putUnitDouble( idsmartBrushFeather, idpixelsUnit, 0.000000 );
+        var idsmartBrushContrast = stringIDToTypeID( "smartBrushContrast" );
+        var idpercentUnit = stringIDToTypeID( "percentUnit" );
+        desc121.putUnitDouble( idsmartBrushContrast, idpercentUnit, 100.000000 );
+        var idsmartBrushShiftEdge = stringIDToTypeID( "smartBrushShiftEdge" );
+        var idpercentUnit = stringIDToTypeID( "percentUnit" );
+        desc121.putUnitDouble( idsmartBrushShiftEdge, idpercentUnit, 0.000000 );
+        var idsampleAllLayers = stringIDToTypeID( "sampleAllLayers" );
+        desc121.putBoolean( idsampleAllLayers, true );
+        var idsmartBrushUseSmartRadius = stringIDToTypeID( "smartBrushUseSmartRadius" );
+        desc121.putBoolean( idsmartBrushUseSmartRadius, false );
+        var idsmartBrushDecontaminate = stringIDToTypeID( "smartBrushDecontaminate" );
+        desc121.putBoolean( idsmartBrushDecontaminate, false );
+        var idsmartBrushDeconAmount = stringIDToTypeID( "smartBrushDeconAmount" );
+        var idpercentUnit = stringIDToTypeID( "percentUnit" );
+        desc121.putUnitDouble( idsmartBrushDeconAmount, idpercentUnit, 100.000000 );
+        var idrefineEdgeOutput = stringIDToTypeID( "refineEdgeOutput" );
+        var idrefineEdgeOutput = stringIDToTypeID( "refineEdgeOutput" );
+        var idselectionOutputToSelection = stringIDToTypeID( "selectionOutputToSelection" );
+        desc121.putEnumerated( idrefineEdgeOutput, idrefineEdgeOutput, idselectionOutputToSelection );
+    executeAction( idsmartBrushWorkspace, desc121, DialogModes.NO );
+}
+
 function fillSolidColour(R, G, B) {
     var id117 = charIDToTypeID( "Mk  " );
     var desc25 = new ActionDescriptor();
@@ -839,6 +1065,21 @@ function fillSolidColour(R, G, B) {
     executeAction( id117, desc25, DialogModes.NO );
     
     return activeDocument.activeLayer;
+}
+
+function selectRgb() {
+    var id248 = charIDToTypeID( "slct" );
+        var desc48 = new ActionDescriptor();
+        var id249 = charIDToTypeID( "null" );
+        var ref36 = new ActionReference();
+        var id250 = charIDToTypeID( "Chnl" );
+        var id251 = charIDToTypeID( "Chnl" );
+        var id252 = charIDToTypeID( "RGB " );
+        ref36.putEnumerated( id250, id251, id252 );
+        desc48.putReference( id249, ref36 );
+        var id253 = charIDToTypeID( "MkVs" );
+        desc48.putBoolean( id253, false );
+	executeAction( id248, desc48, DialogModes.NO );
 }
 
 function pasteInPlace() {
@@ -885,6 +1126,29 @@ function placeLinkedFile(file) {
 function convertPlacedToLayers() {
     var idplacedLayerConvertToLayers = stringIDToTypeID( "placedLayerConvertToLayers" );
     executeAction( idplacedLayerConvertToLayers, undefined, DialogModes.NO );
+}
+
+function removeEmptyChannels() {
+    for (i_alpha = 3; i_alpha < activeDocument.channels.length; i_alpha++) {
+
+        activeDocument.activeChannels = [activeDocument.channels[i_alpha]];
+        var visibleStatus = activeDocument.channels[i_alpha].visible;
+        activeDocument.channels[i_alpha].visible = true;
+        var emptyAlpha = true;
+        var histSection = activeDocument.channels[i_alpha].histogram;
+        for (i_hist = 1; i_hist < histSection.length - 1; i_hist++) {
+            if (histSection[i_hist] != 0) {
+                emptyAlpha = false;
+                break;
+            }
+        }
+        activeDocument.channels[i_alpha].visible = visibleStatus;
+        if (histSection[activeDocument.channels[i_alpha].histogram.length - 1] == 51195456 && emptyAlpha) activeDocument.channels[i_alpha].remove(); // Is black
+        if (histSection[0] == 51195456 && emptyAlpha) activeDocument.channels[i_alpha].remove(); // Is white
+
+        activeDocument.activeChannels = [activeDocument.channels[0], activeDocument.channels[1], activeDocument.channels[2]];
+
+    }
 }
 
 function cleanFolderStr(input, singleSlash) { // Input a path in any form and return a string that looks like it's pasted
