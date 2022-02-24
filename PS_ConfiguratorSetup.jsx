@@ -733,6 +733,8 @@ function main() {
         savePSB(File(psbDir + "/" + activeDocument.name));
     
     } else {
+        var cryptoMat = false;
+        var cryptoMesh = false;
         try {
             for (i_crypto = 0; i_crypto < subDirs.length; i_crypto++) {
                 if (subDirs[i_crypto].category == "PaintMain" || subDirs[i_crypto].category == "PaintSub") {
@@ -753,10 +755,17 @@ function main() {
                                     savePSB(File(String(exrFileList[i_exr]).substring(0, String(exrFileList[i_exr]).lastIndexOf(".exr"))) + ".psb");
                                     activeDocument.close(SaveOptions.DONOTSAVECHANGES);
                                 }
+                            } else {
+                                if (itemName.toLowerCase().indexOf("material")) {
+                                    cryptoMat = true;
+                                } else {
+                                    cryptoMesh = true;
+                                }
                             }
                         }
                     }
                 }
+                if (cryptoMat && cryptoMesh) break;
             }
         } catch(e) {
             alert("Failed to create crypto masks" + "\n" + e)
