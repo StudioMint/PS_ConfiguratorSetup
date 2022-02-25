@@ -422,7 +422,11 @@ function init() {
 
     // Timer calculate
     var timeFull = timeSinceStart(timeStart);
-    alert("Time elapsed " + formatSeconds(timeFull));
+    if (!cryptoRun) {
+        alert("Time elapsed " + formatSeconds(timeFull));
+    } else {
+        alert("Sufficient cryptomattes available (material and mesh)!\nTime elapsed " + formatSeconds(timeFull));
+    }
 
     // Reset the ruler
     app.preferences.rulerUnits = startRulerUnits;
@@ -754,8 +758,17 @@ function main() {
                                     }
                                     savePSB(File(String(exrFileList[i_exr]).substring(0, String(exrFileList[i_exr]).lastIndexOf(".exr"))) + ".psb");
                                     activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+                                    
+                                    var itemName = String(exrFileList[i_exr]).substring(String(exrFileList[i_exr]).lastIndexOf("/") + 1, String(exrFileList[i_exr]).length);
+                                    if (itemName.toLowerCase().indexOf("material")) {
+                                        cryptoMat = true;
+                                    } else {
+                                        cryptoMesh = true;
+                                    }
                                 }
-                            } else {
+                            }
+                            for (i_psb = 0; i_psb < psbFileList.length; i_psb++) {
+                                var itemName = String(psbFileList[i_psb]).substring(String(psbFileList[i_psb]).lastIndexOf("/") + 1, String(psbFileList[i_psb]).length);
                                 if (itemName.toLowerCase().indexOf("material")) {
                                     cryptoMat = true;
                                 } else {
